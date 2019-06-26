@@ -3,7 +3,7 @@
 # if doing interpolate, then state is invalid option
 create_env ()
 {
-./systemVariables.sh
+source ./systemVariables.sh
 state="--state=./state.json"
   func_result="some result"
   if [ "$action" == "int" ]; then
@@ -13,7 +13,6 @@ state="--state=./state.json"
    bosh $action \
     $state \
     $BOSH_HOME/bosh-deployment/bosh.yml \
-    --vars-store=$BOSH_HOME/creds.yml \
     -o $BOSH_HOME/bosh-deployment/virtualbox/cpi.yml \
     -o $BOSH_HOME/bosh-deployment/virtualbox/outbound-network.yml \
     -o $BOSH_HOME/bosh-deployment/bosh-lite.yml \
@@ -22,6 +21,7 @@ state="--state=./state.json"
     -o $BOSH_HOME/bosh-deployment/credhub.yml \
     -o $BOSH_HOME/bosh-deployment/jumpbox-user.yml \
     -o $BOSH_HOME/override-size.yml \
+    --vars-store=$BOSH_HOME/creds.yml \
     -v director_name=MGCB_DIRECTOR \
     -v internal_ip=192.168.50.2 \
     -v internal_gw=192.168.50.1 \
@@ -54,13 +54,13 @@ case $n in
 	#get key from creds file
 	#for testing ssh connection
 	#ssh jumpbox@192.168.50.6 -i jumpbox.key
-	bosh int creds.yml --path /jumpbox_ssh/private_key > jumpbox.key
+	bosh int $BOSH_HOME/creds.yml --path /jumpbox_ssh/private_key > jumpbox.key
 	chmod 600 jumpbox.key;;
   5) echo "Interpolate admin password from creds.yml"
-	bosh int ./creds.yml --path /admin_password
-	bosh -e 192.168.50.2 alias-env virtualbox --ca-cert <(bosh int ./creds.yml --path /director_ssl/ca);;
+	bosh int $BOSH_HOME/creds.yml --path /admin_password
+	bosh -e 192.168.50.2 alias-env virtualbox --ca-cert <(bosh int $BOSH_HOME/creds.yml --path /director_ssl/ca);;
   6) echo "You chose Option 6"
-	yes Y | bosh update-cloud-config bosh-deployment/warden/cloud-config.yml
+	yes Y | bosh update-cloud-config $BOSH_HOME/bosh-deployment/warden/cloud-config.yml
 	wget https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
 	bosh upload-stemcell bosh-warden-boshlite-ubuntu-trusty-go_agent
 	rm -f bosh-warden-boshlite-ubuntu-trusty-go_agent

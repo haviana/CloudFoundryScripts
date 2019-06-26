@@ -8,11 +8,11 @@ do
     case $opt in
         "Option 1 - Start Virtual Machine")
             echo "you chose choice 1"
-	    vboxmanage startvm $(bosh int $BOSH_HOME/state.json --path /current_vm_cid) --type headless
+	    vboxmanage startvm $(bosh int ./state.json --path /current_vm_cid) --type headless
             ;;
         "Option 2 - Save Virtual Machine State")
             echo "Save Virtual Machine State"
-            vboxmanage controlvm $(bosh int $BOSH_HOME/state.json --path /current_vm_cid) savestate
+            vboxmanage controlvm $(bosh int ./state.json --path /current_vm_cid) savestate
             ;;
         "Quit")
             break

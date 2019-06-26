@@ -3,14 +3,15 @@ echo "Creating Performing action"
 echo "system_domain: $SYSTEM_DOMAIN"
 echo Performing $1
 echo "Loading system variables"
-./systemVariables.sh
+source ./systemVariables.sh
 # if doing interpolate, then state is invalid option
 create_cf_env(){
 if [ "$action" == "int" ]; then
   state=""
 else
   echo " setting up DNS config"
-  bosh update-runtime-config bosh-deployment/runtime-configs/dns.yml --name dns
+  bosh update-runtime-config $BOSH_HOME/bosh-deployment/runtime-configs/dns.yml --name dns
+  bosh update-cloud-config $CF_DEPLOYMENT_HOME/iaas-support/bosh-lite/cloud-config.yml
   echo " Installing stemcell"
   bosh upload-stemcell --sha1 b33bc047562aab2d9860420228aadbd88c5fccfb \
   https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-xenial-go_agent?v=315.36
@@ -36,6 +37,7 @@ echo "select the operation ************"
 echo "  1)CF Installation Info"
 echo "  2)Deploy CF"
 echo "  3)Undeploy CF"
+echo "  4)Install CF cli tool and Credhub"
 
 read n
 case $n in
@@ -50,20 +52,28 @@ case $n in
  	bosh -d cf delete-deployment
         ;;
   4) echo "You chose Option 4"
-        #get key from creds file
-        #for testing ssh connection
-        #ssh jumpbox@192.168.50.6 -i jumpbox.key
-        bosh int creds.yml --path /jumpbox_ssh/private_key > jumpbox.key
-        chmod 600 jumpbox.key;;
-  5) echo "Interpolate admin password from creds.yml"
-        bosh int ./creds.yml --path /admin_password
-        bosh -e 192.168.50.2 alias-env virtualbox --ca-cert <(bosh int ./creds.yml --path /director_ssl/ca);;
-  6) echo "You chose Option 6"
-        yes Y | bosh update-cloud-config bosh-deployment/warden/cloud-config.yml
-        wget https://bosh.io/d/stemcells/bosh-warden-boshlite-ubuntu-trusty-go_agent
-        bosh upload-stemcell bosh-warden-boshlite-ubuntu-trusty-go_agent
-        rm -f bosh-warden-boshlite-ubuntu-trusty-go_agent
-        #ssh jumpbox@192.168.50.6 -i jumpbox.key
+       #
+       # Install CredHub
+       #
+	# get release
+        wget https://github.com/cloudfoundry-incubator/credhub-cli/releases/download/2.2.0/credhub-linux-2.2.0.tgz 
+        # extract
+        tar xvfz cred*.tgz
+        # put in path and executable
+        chmod ugo+r+x credhub
+        sudo chown root:root credhub
+        sudo mv credhub /usr/local/bin/.
+        #
+        # Install CF cli Tool
+        #
+	# get key, add repo source
+	wget -q -O - https://packages.cloudfoundry.org/debian/cli.cloudfoundry.org.key | sudo apt-key add -
+
+	echo "deb http://packages.cloudfoundry.org/debian stable main" | sudo tee /etc/apt/sources.list.d/cloudfoundry-cli.list
+
+	# install package
+	sudo apt-get update
+	sudo apt-get install cf-cli curl -y
         ;;
   *) echo "invalid option";;
 esac
